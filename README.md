@@ -6,7 +6,7 @@ heures, carte animée (pluie observée puis prévue) et vue de la suite de la jo
 Lieu configurable (recherche de ville, géolocalisation ou URL), ville de Québec par défaut,
 zone couverte : Québec.
 
-Site 100 % statique, en ligne sur https://pleutpas.fr
+Site 100 % statique, en ligne sur https://samhazvez.github.io/pleutpasqc/
 
 ## Données
 
