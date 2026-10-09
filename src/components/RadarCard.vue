@@ -2,7 +2,7 @@
 import * as L from 'leaflet'
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { basemap, futureRain, place, recenterTick, setBasemap } from '../store'
-import { fmtHM, FRANCE_BOUNDS } from '../lib/meteo'
+import { fmtHM, QUEBEC_BOUNDS } from '../lib/meteo'
 import { rainLayer, type RainLayer } from '../lib/rainLayer'
 
 interface ViewFrame {
@@ -193,20 +193,20 @@ onMounted(() => {
     zoomControl: false,
     maxZoom: 12,
     minZoom: 5,
-    maxBounds: L.latLngBounds(FRANCE_BOUNDS).pad(0.05),
+    maxBounds: L.latLngBounds(QUEBEC_BOUNDS).pad(0.05),
     maxBoundsViscosity: 1,
   }).setView([place.value.lat, place.value.lon], 8)
   L.control.zoom({ position: 'topright' }).addTo(map)
   const plan = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    maxZoom: 12, attribution: '© OpenStreetMap | Météo-France',
+    maxZoom: 12, attribution: '© OpenStreetMap',
   })
   const velo = L.tileLayer('https://{s}.tile-cyclosm.openstreetmap.fr/cyclosm/{z}/{x}/{y}.png', {
-    maxZoom: 12, attribution: '<a href="https://www.cyclosm.org/">CyclOSM</a> | © OpenStreetMap | Météo-France',
+    maxZoom: 12, attribution: '<a href="https://www.cyclosm.org/">CyclOSM</a> | © OpenStreetMap',
   })
   ;(basemap.value === 'velo' ? velo : plan).addTo(map)
   L.control.layers({ 'Plan': plan, 'Vélo (CyclOSM)': velo }, undefined, { position: 'topright' }).addTo(map)
   map.on('baselayerchange', (e: L.LayersControlEvent) => setBasemap(e.layer === velo ? 'velo' : 'plan'))
-  layer = rainLayer(FRANCE_BOUNDS, { opacity: 0.85, zIndex: 5 }).addTo(map)
+  layer = rainLayer(QUEBEC_BOUNDS, { opacity: 0.85, zIndex: 5 }).addTo(map)
   marker = L.circleMarker([place.value.lat, place.value.lon], {
     radius: 7, color: '#fff', weight: 2, fillColor: '#1d6ef2', fillOpacity: 1,
   }).addTo(map)

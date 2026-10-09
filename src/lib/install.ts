@@ -8,7 +8,7 @@ interface BeforeInstallPromptEvent extends Event {
 
 export type InstallState = 'hidden' | 'android' | 'ios'
 
-const KEY_DISMISSED = 'pleutpas.installDismissed'
+const KEY_DISMISSED = 'pleutpasqc.installDismissed'
 
 export const installState = ref<InstallState>('hidden')
 let deferred: BeforeInstallPromptEvent | null = null

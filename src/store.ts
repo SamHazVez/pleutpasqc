@@ -1,20 +1,19 @@
 import { computed, ref } from 'vue'
-import { BESANCON, cleanName, inFranceBounds, WET_MM, type MfEntry, type Place, type Slot } from './lib/meteo'
+import { QUEBEC_CITY, cleanName, inQuebecBounds, WET_MM, type ImmediateEntry, type Place, type Slot } from './lib/meteo'
 import { parseHHMM } from './lib/ics'
 import {
   fetchFutureRain,
-  fetchRain,
   fetchWeather,
   sampleFrameMm,
   type FutureRain,
   type OpenMeteoPayload,
 } from './lib/api'
 
-const KEY_TRIP = 'pleutpas.tripMin'
-const KEY_PLACE = 'pleutpas.place'
-const KEY_CACHE = 'pleutpas.cache'
-const KEY_BASEMAP = 'pleutpas.basemap'
-const KEY_REMINDER = 'pleutpas.reminderTime'
+const KEY_TRIP = 'pleutpasqc.tripMin'
+const KEY_PLACE = 'pleutpasqc.place'
+const KEY_CACHE = 'pleutpasqc.cache'
+const KEY_BASEMAP = 'pleutpasqc.basemap'
+const KEY_REMINDER = 'pleutpasqc.reminderTime'
 
 export function lsGet(key: string): string | null {
   try { return localStorage.getItem(key) } catch { return null }
@@ -36,18 +35,18 @@ function loadPlace(): Place {
   if (q.has('lat') || q.has('lon') || q.has('nom')) {
     history.replaceState(null, '', location.pathname)
   }
-  if (isFinite(lat) && isFinite(lon) && inFranceBounds(lat, lon)) {
+  if (isFinite(lat) && isFinite(lon) && inQuebecBounds(lat, lon)) {
     const p: Place = { name: cleanName(q.get('nom')) || lat.toFixed(2) + ', ' + lon.toFixed(2), lat, lon }
     lsSet(KEY_PLACE, JSON.stringify(p))
     return p
   }
   try {
     const p = JSON.parse(lsGet(KEY_PLACE) ?? 'null')
-    if (p && isFinite(p.lat) && isFinite(p.lon) && inFranceBounds(p.lat, p.lon) && cleanName(p.name)) {
+    if (p && isFinite(p.lat) && isFinite(p.lon) && inQuebecBounds(p.lat, p.lon) && cleanName(p.name)) {
       return { name: cleanName(p.name), lat: p.lat, lon: p.lon }
     }
   } catch { /* entree corrompue */ }
-  return BESANCON
+  return QUEBEC_CITY
 }
 
 export type Basemap = 'plan' | 'velo'
@@ -58,7 +57,7 @@ export const tripMin = ref(loadTrip())
 export const reminderTime = ref(parseHHMM(lsGet(KEY_REMINDER) ?? '') ? lsGet(KEY_REMINDER) as string : '08:00')
 export const weather = ref<OpenMeteoPayload | null>(null)
 export const fetchedAt = ref<number | null>(null)
-export const rainMF = ref<MfEntry[] | null>(null)
+export const rainMF = ref<ImmediateEntry[] | null>(null)
 export const radarMmNow = ref<number | null>(null)
 export const radarPending = ref(false)
 export const futureRain = ref<FutureRain | null>(null)
@@ -92,22 +91,22 @@ export async function refresh(fromButton = false): Promise<void> {
   radarPending.value = true
   if (fromButton) recenterTick.value++
   const futP = fetchFutureRain().catch(() => null)
-  const [w, r] = await Promise.allSettled([fetchWeather(p), fetchRain(p)])
+  const [w] = await Promise.allSettled([fetchWeather(p)])
   if (seq !== refreshSeq) return
   if (w.status === 'fulfilled') {
     weather.value = w.value
     fetchedAt.value = Date.now()
-    lsSet(KEY_CACHE, JSON.stringify({ at: fetchedAt.value, lat: p.lat, lon: p.lon, payload: w.value }))
+    lsSet(KEY_CACHE, JSON.stringify({ region: 'quebec', at: fetchedAt.value, lat: p.lat, lon: p.lon, payload: w.value }))
   } else if (!weather.value) {
     try {
       const c = JSON.parse(lsGet(KEY_CACHE) ?? 'null')
-      if (c && c.payload && c.lat === p.lat && c.lon === p.lon) {
+      if (c?.region === 'quebec' && c.payload && c.lat === p.lat && c.lon === p.lon) {
         weather.value = c.payload
         fetchedAt.value = c.at
       }
     } catch { /* entree corrompue */ }
   }
-  rainMF.value = r.status === 'fulfilled' ? r.value : null
+  rainMF.value = null
   const fut = await futP
   let mm: number | null = null
   const past = fut?.past ?? []

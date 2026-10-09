@@ -7,8 +7,7 @@
     "dev": "vite",
     "build": "vue-tsc --noEmit && vite build",
     "preview": "vite preview",
-    "data": "node --env-file-if-exists=.env.local scripts/build-rain-frames.mjs",
-    "piaf": "node --env-file-if-exists=.env.local scripts/build-piaf-frames.mjs"
+    "radar": "node scripts/build-radar-frames.mjs"
   },
   "dependencies": {
     "geotiff": "^3.0.5",

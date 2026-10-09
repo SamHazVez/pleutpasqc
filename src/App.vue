@@ -43,14 +43,11 @@ const updatedText = computed(() => fetchedAt.value === null
   <footer class="mx-auto max-w-[640px] px-3.5 pb-7 text-center text-[11px] leading-4 text-dim desk:max-w-[860px]">
     Prévisions <a class="underline" href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a>
     (<a class="underline" href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC-BY 4.0</a>),
-    pluie dans l'heure, lame d'eau radar et prévisions PIAF / AROME-PI <a class="underline" href="https://meteofrance.com/" target="_blank" rel="noopener">Météo-France</a>
-    (<a class="underline" href="https://www.etalab.gouv.fr/licence-ouverte-open-licence" target="_blank" rel="noopener">Licence Ouverte</a>),
-    lieux <a class="underline" href="https://adresse.data.gouv.fr/" target="_blank" rel="noopener">Base Adresse Nationale</a>
-    et <a class="underline" href="https://geo.api.gouv.fr/decoupage-administratif" target="_blank" rel="noopener">découpage administratif</a> (Licence Ouverte),
-    hors de France <a class="underline" href="https://photon.komoot.io/" target="_blank" rel="noopener">Photon</a> (données OpenStreetMap, ODbL),
+    radar et extrapolation <a class="underline" href="https://eccc-msc.github.io/open-data/" target="_blank" rel="noopener">Environnement et Changement climatique Canada</a>,
+    lieux <a class="underline" href="https://photon.komoot.io/" target="_blank" rel="noopener">Photon</a> (données OpenStreetMap, ODbL),
     fonds de carte <a class="underline" href="https://www.openstreetmap.org/" target="_blank" rel="noopener">OpenStreetMap</a>
     et <a class="underline" href="https://www.cyclosm.org/" target="_blank" rel="noopener">CyclOSM</a>.
     <span class="block pt-1">Contact : <a class="underline" :href="'mailto:' + contact">{{ contact }}</a>.
-    <a class="underline" href="https://github.com/jlzdev/pleutpas/blob/main/CHANGELOG.md" target="_blank" rel="noopener">v{{ version }}</a></span>
+    <a class="underline" href="https://github.com/SamHazVez/pleutpasqc/blob/main/CHANGELOG.md" target="_blank" rel="noopener">v{{ version }}</a></span>
   </footer>
 </template>

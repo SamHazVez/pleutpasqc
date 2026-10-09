@@ -2,7 +2,7 @@
 import { computed, ref } from 'vue'
 import { place, reminderTime, setPlace, setReminderTime, setTripMin, tripMin } from '../store'
 import { reverseGeocodeName, searchPlaces, type GeoResult } from '../lib/api'
-import { fmtHM, inFranceBounds } from '../lib/meteo'
+import { fmtHM, inQuebecBounds } from '../lib/meteo'
 import { buildReminderIcs, downloadIcs, REMINDER_LEAD_MIN, reminderMs } from '../lib/ics'
 
 const query = ref('')
@@ -19,9 +19,9 @@ function locateMe(): void {
   navigator.geolocation.getCurrentPosition(async pos => {
     const lat = Math.round(pos.coords.latitude * 1000) / 1000
     const lon = Math.round(pos.coords.longitude * 1000) / 1000
-    if (!inFranceBounds(lat, lon)) {
+    if (!inQuebecBounds(lat, lon)) {
       locating.value = false
-      message.value = 'Position hors de la zone couverte (France et pays voisins).'
+      message.value = 'Position hors de la zone couverte (Québec).'
       return
     }
     let name: string | null = null
@@ -73,7 +73,7 @@ async function search(): Promise<void> {
     const found = await searchPlaces(q)
     if (seq !== searchSeq) return
     results.value = found
-    message.value = found.length ? '' : 'Aucun lieu trouvé pour "' + q + '" dans la zone couverte (France et pays voisins).'
+    message.value = found.length ? '' : 'Aucun lieu trouvé pour "' + q + '" au Québec.'
   } catch {
     if (seq !== searchSeq) return
     message.value = 'Recherche indisponible, vérifie ta connexion.'

@@ -11,7 +11,7 @@ export interface Slot {
   mm: number
 }
 
-export interface MfEntry {
+export interface ImmediateEntry {
   start: number
   end: number
   level: number
@@ -28,18 +28,17 @@ export interface VerdictView {
 export const SLOT_MIN = palette.slotMin
 export const WET_MM = palette.wetMm
 export const LIGHT_MAX_MM = palette.lightMaxMm
-export const BESANCON: Place = { name: 'Besançon', lat: 47.238, lon: 6.024 }
-// bbox des frames Meteo-France (France metro et abords immediats), limite de la recherche,
-// de la geolocalisation et du deplacement de la carte
-export const FRANCE_BOUNDS: [[number, number], [number, number]] = [[41, -5.5], [51.5, 10]]
+export const QUEBEC_CITY: Place = { name: 'Québec', lat: 46.8139, lon: -71.2080 }
+// Emprise de recherche et de carte; la couverture radar est plus restreinte.
+export const QUEBEC_BOUNDS: [[number, number], [number, number]] = [[44.9, -79.8], [62.6, -57.1]]
 
 export function cleanName(v: unknown): string {
   if (typeof v !== 'string') return ''
   return v.replace(/[\u0000-\u001f\u007f]/g, '').trim().slice(0, 40)
 }
 
-export function inFranceBounds(lat: number, lon: number): boolean {
-  const [[south, west], [north, east]] = FRANCE_BOUNDS
+export function inQuebecBounds(lat: number, lon: number): boolean {
+  const [[south, west], [north, east]] = QUEBEC_BOUNDS
   return lat >= south && lat <= north && lon >= west && lon <= east
 }
 
@@ -82,9 +81,9 @@ function slotsEndMs(slots: Slot[]): number {
   return slots.length ? slots[slots.length - 1].start + SLOT_MIN * 60000 : 0
 }
 
-function mfEntryAt(mf: MfEntry[] | null, tMs: number): MfEntry | null {
-  if (!mf) return null
-  for (const e of mf) {
+function immediateEntryAt(entries: ImmediateEntry[] | null, tMs: number): ImmediateEntry | null {
+  if (!entries) return null
+  for (const e of entries) {
     if (tMs >= e.start && tMs < e.end) return e
   }
   return null
@@ -96,39 +95,38 @@ function slotAt(slots: Slot[], tMs: number): Slot | null {
   return i >= 0 && i < slots.length ? slots[i] : null
 }
 
-// niveaux MF pluie dans l'heure (1 sec, 2 faible, 3 moderee, 4 forte) ramenes a l'echelle
-// mm / 15 min de la palette, seule unite du verdict et de la timeline
-export function mfLevelMm(level: number): number {
-  const table = palette.mfLevelMm
+// Conversion d'une classe de précipitation vers l'échelle de la palette.
+export function immediateLevelMm(level: number): number {
+  const table = palette.immediateLevelMm
   return table[Math.max(0, Math.min(level, table.length - 1))]
 }
 
-function mmAtMs(slots: Slot[], mf: MfEntry[] | null, tMs: number): number | null {
-  const e = mfEntryAt(mf, tMs)
-  if (e) return mfLevelMm(e.level)
+function mmAtMs(slots: Slot[], entries: ImmediateEntry[] | null, tMs: number): number | null {
+  const e = immediateEntryAt(entries, tMs)
+  if (e) return immediateLevelMm(e.level)
   const s = slotAt(slots, tMs)
   return s ? s.mm : null
 }
 
-function wetAtMs(slots: Slot[], mf: MfEntry[] | null, tMs: number): boolean | null {
-  const mm = mmAtMs(slots, mf, tMs)
+function wetAtMs(slots: Slot[], entries: ImmediateEntry[] | null, tMs: number): boolean | null {
+  const mm = mmAtMs(slots, entries, tMs)
   return mm === null ? null : mm >= WET_MM
 }
 
-function maxMmWindow(slots: Slot[], mf: MfEntry[] | null, startMs: number, durMin: number): number | null {
+function maxMmWindow(slots: Slot[], entries: ImmediateEntry[] | null, startMs: number, durMin: number): number | null {
   const endMs = startMs + durMin * 60000
   let max = 0
   for (let t = startMs; t < endMs; t += STEP_5MIN_MS) {
-    const mm = mmAtMs(slots, mf, t)
+    const mm = mmAtMs(slots, entries, t)
     if (mm === null) return null
     max = Math.max(max, mm)
   }
-  const last = mmAtMs(slots, mf, endMs - 1)
+  const last = mmAtMs(slots, entries, endMs - 1)
   return last === null ? null : Math.max(max, last)
 }
 
-function isDryWindowMs(slots: Slot[], mf: MfEntry[] | null, startMs: number, durMin: number): boolean {
-  const mm = maxMmWindow(slots, mf, startMs, durMin)
+function isDryWindowMs(slots: Slot[], entries: ImmediateEntry[] | null, startMs: number, durMin: number): boolean {
+  const mm = maxMmWindow(slots, entries, startMs, durMin)
   return mm !== null && mm < WET_MM
 }
 
@@ -136,18 +134,18 @@ function next5min(t: number): number {
   return (Math.floor(t / STEP_5MIN_MS) + 1) * STEP_5MIN_MS
 }
 
-function firstWetMs(slots: Slot[], mf: MfEntry[] | null, fromMs: number): number {
+function firstWetMs(slots: Slot[], entries: ImmediateEntry[] | null, fromMs: number): number {
   const endMs = Math.min(fromMs + 48 * 3600000, slotsEndMs(slots))
   for (let t = fromMs; t < endMs; t = next5min(t)) {
-    if (wetAtMs(slots, mf, t) === true) return t
+    if (wetAtMs(slots, entries, t) === true) return t
   }
   return -1
 }
 
-function nextDryDepartureMs(slots: Slot[], mf: MfEntry[] | null, fromMs: number, durMin: number): number {
+function nextDryDepartureMs(slots: Slot[], entries: ImmediateEntry[] | null, fromMs: number, durMin: number): number {
   const endMs = Math.min(fromMs + 48 * 3600000, slotsEndMs(slots))
   for (let t = fromMs; t < endMs; t = next5min(t)) {
-    if (isDryWindowMs(slots, mf, t, durMin)) return t
+    if (isDryWindowMs(slots, entries, t, durMin)) return t
   }
   return -1
 }
@@ -171,17 +169,16 @@ export interface TimelineCell {
   title: string
 }
 
-// vue unique des 2 prochaines heures en cases de 5 min, memes sources et meme priorite
-// que le verdict (MF pluie dans l'heure d'abord, Open-Meteo au-dela), pour que la carte
-// timeline ne puisse jamais contredire le OUI/NON
-export function timelineCells(slots: Slot[], mf: MfEntry[] | null, nowMs: number): TimelineCell[] {
+// Vue unique des 2 prochaines heures en cases de 5 min, utilisée par le verdict
+// et la timeline pour conserver une représentation cohérente.
+export function timelineCells(slots: Slot[], entries: ImmediateEntry[] | null, nowMs: number): TimelineCell[] {
   const firstMs = Math.floor(nowMs / STEP_5MIN_MS) * STEP_5MIN_MS
   const cells: TimelineCell[] = []
   for (let i = 0; i < 24; i++) {
     const t = firstMs + i * STEP_5MIN_MS
-    const e = mfEntryAt(mf, t)
+    const e = immediateEntryAt(entries, t)
     if (e) {
-      const mm = mfLevelMm(e.level)
+      const mm = immediateLevelMm(e.level)
       cells.push({ start: t, wet: mm >= WET_MM, color: intensityColor(mm), title: fmtHM(t) + ' : ' + e.desc })
       continue
     }
@@ -229,7 +226,7 @@ export function dayCells(slots: Slot[], nowMs: number): DayCell[] {
 
 export function computeVerdict(
   slots: Slot[],
-  mf: MfEntry[] | null,
+  entries: ImmediateEntry[] | null,
   radarMmNow: number | null,
   tripMin: number,
   nowMs: number,
@@ -245,17 +242,11 @@ export function computeVerdict(
       detail: 'Actualise quand tu as du réseau.',
     }
   }
-  // MF pluie dans l'heure (radar controle qualite par Meteo-France) fait autorite sur le
-  // "maintenant" : l'echantillonnage de la lame d'eau (frames PIAF passees) ne sert de
-  // detecteur de pluie que quand MF ne repond pas.
-  // Le premier pas MF demarre au prochain multiple de 5 min, d'ou la tolerance en amont
-  const mfCoversNow = !!mf && mf.length > 0
-    && nowMs >= mf[0].start - 2 * STEP_5MIN_MS && nowMs < mf[mf.length - 1].end
-  const radarMm = mfCoversNow ? null : radarMmNow
-  const tripMm = maxMmWindow(slots, mf, nowMs, tripMin)
+  const radarMm = radarMmNow
+  const tripMm = maxMmWindow(slots, entries, nowMs, tripMin)
   const worstMm = tripMm === null ? null : Math.max(tripMm, radarMm ?? 0)
   if (worstMm !== null && worstMm < WET_MM) {
-    const wetT = firstWetMs(slots, mf, nowMs)
+    const wetT = firstWetMs(slots, entries, nowMs)
     return {
       state: 'oui',
       big: 'OUI',
@@ -265,10 +256,10 @@ export function computeVerdict(
         : 'Sec jusqu\'à ' + fmtDayHM(wetT, nowMs) + ' environ.',
     }
   }
-  const nowMm = Math.max(mmAtMs(slots, mf, nowMs) ?? 0, radarMm ?? 0)
+  const nowMm = Math.max(mmAtMs(slots, entries, nowMs) ?? 0, radarMm ?? 0)
   const rainingNow = nowMm >= WET_MM
-  const wetT = firstWetMs(slots, mf, nowMs)
-  const depMs = nextDryDepartureMs(slots, mf, nowMs, tripMin)
+  const wetT = firstWetMs(slots, entries, nowMs)
+  const depMs = nextDryDepartureMs(slots, entries, nowMs, tripMin)
   const noDryWindow = 'Pas de fenêtre sèche trouvée d\'ici ' + fmtDayHM(slotsEndMs(slots), nowMs) + ' (fin des prévisions).'
   // bruine ou pluie faible seulement sur le trajet : ca se roule avec une veste, le
   // NON est reserve a la vraie pluie
