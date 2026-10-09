@@ -5,6 +5,7 @@ import { VitePWA } from 'vite-plugin-pwa'
 import { version } from './package.json'
 
 export default defineConfig({
+  base: '/pleutpasqc/',
   define: { __APP_VERSION__: JSON.stringify(version) },
   plugins: [
     vue(),
