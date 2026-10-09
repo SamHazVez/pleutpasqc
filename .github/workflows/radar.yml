@@ -32,5 +32,5 @@ jobs:
           cd out-radar
           git init -q -b radar
           git add -A
-          git -c user.name=pleutpasqc-data -c user.email=actions@github.com commit -q -m "frames $(date -u +%FT%TZ)"
+          git -c user.name=pleutpasqc-data -c user.email=pleutpasqc-data@users.noreply.github.com commit -q -m "frames $(date -u +%FT%TZ)"
           git push -q --force "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" radar
